@@ -24,21 +24,19 @@ class Calculations:
         trips['Starttime'] = pd.to_datetime(trips['Starttime'])
         return trips
     
-    def calculate_daily_counts(self, trips):
-        trips['date'] = trips['Starttime'].dt.date
-        from_cnt = trips.groupby(['date', 'From station id']).size().reset_index(name='fromCNT')
-        to_cnt = trips.groupby(['date', 'To station id']).size().reset_index(name='toCNT')
-        rebalanced = self.calculate_rebalancing(trips)
-        # Merge the counts and then rebalancing data
-        daily_counts = from_cnt.merge(to_cnt, left_on=['date', 'From station id'], right_on=['date', 'To station id'], how='outer')
-        daily_counts = daily_counts.merge(rebalanced, on=['date', 'station_id'], how='left')
-        daily_counts['fromCNT'] = daily_counts['fromCNT'].fillna(0).astype(int)
-        daily_counts['toCNT'] = daily_counts['toCNT'].fillna(0).astype(int)
-        daily_counts['rebalCNT'] = daily_counts['rebalCNT'].fillna(0).astype(int)
-        daily_counts['date'] = daily_counts['date'].apply(lambda x: x.strftime('%m/%d/%Y'))
-        daily_counts['station_id'] = daily_counts['From station id'].fillna(daily_counts['To station id']).astype(int)
-        daily_counts = daily_counts.drop(columns=['From station id', 'To station id'])
-        return daily_counts.sort_values(['date', 'station_id'])
+   def calculate_daily_counts(self, trips):
+       trips['date'] = trips['Starttime'].dt.date
+       from_cnt = trips.groupby(['date', 'From station id']).size().reset_index(name='fromCNT')
+       to_cnt = trips.groupby(['date', 'To station id']).size().reset_index(name='toCNT')
+       rebalanced = self.calculate_rebalancing(trips)
+       # Combine 'from' and 'to' counts into one dataframe
+       daily_counts = pd.merge(from_cnt, to_cnt, how='outer', left_on=['date', 'From station id'], right_on=['date', 'To station id'])
+       daily_counts['station_id'] = daily_counts['From station id'].fillna(daily_counts['To station id']).astype(int)
+       daily_counts = daily_counts.drop(columns=['From station id', 'To station id'])
+       daily_counts = daily_counts.merge(rebalanced, on=['date', 'station_id'], how='left')
+       daily_counts[['fromCNT', 'toCNT', 'rebalCNT']] = daily_counts[['fromCNT', 'toCNT', 'rebalCNT']].fillna(0).astype(int)
+       daily_counts['date'] = daily_counts['date'].apply(lambda x: x.strftime('%m/%d/%Y'))
+       return daily_counts.sort_values(['date', 'station_id'])
     
     def calculate_monthly_counts(self, trips):
         trips['month'] = trips['Starttime'].dt.to_period('M').dt.strftime('%m/%Y')
