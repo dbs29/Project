@@ -58,19 +58,21 @@ class Calculations:
         trips_sorted = trips.sort_values(['Bikeid', 'Starttime'])
         trips_sorted['next_from_station'] = trips_sorted['From station id'].shift(-1)
         trips_sorted['next_bikeid'] = trips_sorted['Bikeid'].shift(-1)
-        trips_sorted['next_starttime'] = trips_sorted['Starttime'].shift(-1)
+
         rebalanced = trips_sorted[
             (trips_sorted['To station id'] != trips_sorted['next_from_station']) &
             (trips_sorted['Bikeid'] == trips_sorted['next_bikeid']) &
-            (trips_sorted['next_starttime'] > trips_sorted['Starttime'])
+            (trips_sorted['Bikeid'].shift(1) == trips_sorted['Bikeid'])  # Ensure it's not the first use of the bike
         ]
-        # Count the rebalancing events by day or month
+
         if period == 'daily':
+            rebalanced['date'] = rebalanced['Starttime'].dt.date
             rebal_cnt = rebalanced.groupby(['date', 'To station id']).size().reset_index(name='rebalCNT')
-            rebal_cnt.rename(columns={'To station id': 'station_id'}, inplace=True)
-        else:  # monthly
-            rebal_cnt = rebalanced.groupby([trips_sorted['Starttime'].dt.to_period('M').dt.strftime('%m/%Y'), 'To station id']).size().reset_index(name='rebalCNT')
-            rebal_cnt.rename(columns={'To station id': 'station_id'}, inplace=True)
+        else:  
+            rebalanced['month'] = rebalanced['Starttime'].dt.to_period('M').dt.strftime('%m/%Y')
+            rebal_cnt = rebalanced.groupby(['month', 'To station id']).size().reset_index(name='rebalCNT')
+
+        rebal_cnt.rename(columns={'To station id': 'station_id'}, inplace=True)
         return rebal_cnt
 
 if __name__ == "__main__":
