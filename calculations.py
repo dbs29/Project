@@ -26,7 +26,7 @@ class Calculations:
         dataframes = [pd.read_csv(file) for file in files]
         trips = pd.concat(dataframes)
         trips = trips[['Bikeid', 'starttime', 'From station id', 'To Station id']]
-        trips['Starttime'] = pd.to_datetime(trips['Starttime'])
+        trips['starttime'] = pd.to_datetime(trips['starttime'])
         return trips
     
     def calculate_daily_counts(self, trips):
